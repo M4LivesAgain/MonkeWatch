@@ -1,4 +1,4 @@
-﻿using BananaWatch.Utils;
+using BananaWatch.Utils;
 using BepInEx;
 using System;
 using System.Collections;
@@ -28,7 +28,7 @@ namespace BananaWatch
         public bool isPressed;
         public bool canPress;
 
-        private BoxCollider collider1;
+        private BoxCollider collider;
         private bool _bumped;
 
         private Material _material;
@@ -37,7 +37,9 @@ namespace BananaWatch
 
         public void Init()
         {
-            buttonRenderer = GetComponent<Renderer>();
+            if (buttonRenderer == null)
+                buttonRenderer = GetComponent<Renderer>();
+
             if (buttonRenderer == null)
             {
                 return;
@@ -45,6 +47,14 @@ namespace BananaWatch
 
             buttonObject = this.gameObject;
             if (buttonObject == null)
+            {
+                return;
+            }
+
+            if (collider == null)
+                collider = GetComponent<BoxCollider>();
+
+            if (collider == null)
             {
                 return;
             }
@@ -77,7 +87,6 @@ namespace BananaWatch
             if (component != null && !component.isLeftHand && collider.gameObject.name == "RightHandTriggerCollider")
             {
                 canPress = false;
-                collider1 = collider.gameObject.GetComponent<BoxCollider>();
                 BumpIn(); // bumping is broken for some reason, the text stops it from bumping but if you click on the side of the button it will bump
                 Active(true);
             }
@@ -111,12 +120,10 @@ namespace BananaWatch
                 pos.z -= KEY_BUMP_AMOUNT;
                 transform.localPosition = pos;
 
-                if (collider1 != null)
+                if (collider != null)
                 {
-                    collider1.center -= new Vector3(0, 0, KEY_BUMP_AMOUNT / 1.125f);
+                    collider.center -= new Vector3(0, 0, KEY_BUMP_AMOUNT / 1.125f);
                 }
-
-                _material.color = _pressedButtonColor;
             }
         }
 
@@ -129,12 +136,10 @@ namespace BananaWatch
                 pos.z += KEY_BUMP_AMOUNT;
                 transform.localPosition = pos;
 
-                if (collider1 != null)
+                if (collider != null)
                 {
-                    collider1.center += new Vector3(0, 0, KEY_BUMP_AMOUNT / 1.125f);
+                    collider.center += new Vector3(0, 0, KEY_BUMP_AMOUNT / 1.125f);
                 }
-
-                _material.color = _originalColor;
             }
         }
 
