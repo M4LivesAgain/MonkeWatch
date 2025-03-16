@@ -1,4 +1,4 @@
-﻿using BananaWatch.Utils;
+using BananaWatch.Utils;
 using BepInEx;
 using System;
 using System.Collections;
@@ -19,14 +19,14 @@ namespace BananaWatch
     [BepInPlugin("com.M4LivesAgain.BananaWatch", "BananaWatch", "1.0.0")]
     public class BananaWatch : BaseUnityPlugin
     {
-        public static List<Type> pageTypes = new List<Type>();
+        private static List<Type> pageTypes = new List<Type>();
         public static BananaWatch Instance;
         private static AssetBundle assetBundle;
         private static GameObject bananaWatchPrefab;
         private GameObject instantiatedBananaWatch;
         private Text screenText = GameObject.Find("Player Objects/Local VRRig/Local Gorilla Player/RigAnchor/rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L/BananaWatch(Clone)/Plane/Canvas/Text")?.GetComponent<Text>();
-        public static Vector3 originalScale;
-        bool isWatchOpen;
+        private static Vector3 originalScale;
+        private bool isWatchOpen;
 
         private Vector3 positionOffset = new Vector3(0.639f, -0.64f, -0.017f); // as perfect as i can get it without src
         private Vector3 rotationOffset = new Vector3(90f, 180f, -90f);
@@ -41,6 +41,12 @@ namespace BananaWatch
             Instance = this;
             Configuration.LoadSettings();
 
+            GameObject Plane = instantiatedBananaWatch.transform.Find("Plane")?.gameObject;
+            if (Plane != null)
+            {
+                Plane.SetActive(false);
+            }
+
             pageTypes.Add(typeof(StartPage));
             pageTypes.Add(typeof(ErrorPage));
             pageTypes.Add(typeof(MainMenu));
@@ -49,6 +55,8 @@ namespace BananaWatch
             pageTypes.Add(typeof(PlayerDetailsPage));
             pageTypes.Add(typeof(Disconnect));
             pageTypes.Add(typeof(ReportPlayerPage));
+
+
             foreach (var page in AppDomain.CurrentDomain.GetAssemblies())
             {
                 try
@@ -87,9 +95,9 @@ namespace BananaWatch
                     var watchPage = (BananaWatchPage)gameObject.AddComponent(type);
                     watchPages.Add(watchPage);
                 }
-                catch (Exception e)
+                catch (Exception err)
                 {
-                    Debug.LogError(e);
+                    Debug.LogException(err);
                     continue;
                 }
             }
@@ -134,7 +142,7 @@ namespace BananaWatch
 
                             foreach (Transform child in childTransforms)
                             {
-                                if (child.name.Contains("Canvas") || child.name.Contains("Text")) continue;
+                                if (child == buttonsParent.transform) continue;
 
                                 WatchButton watchButton = child.gameObject.GetComponent<WatchButton>();
                                 if (watchButton == null)
@@ -164,20 +172,12 @@ namespace BananaWatch
                                         watchButton.buttonType = BananaWatchButton.Enter;
                                         break;
                                     default:
-
+                                        Debug.LogWarning($"button was registered that i dont understand: {child.name}");
                                         break;
                                 }
 
                                 watchButton.Init();
                             }
-                        }
-
-
-
-                        GameObject Plane = instantiatedBananaWatch.transform.Find("Plane")?.gameObject;
-                        if (Plane != null)
-                        {
-                            Plane.SetActive(false);
                         }
 
                         isInitialized = true;
@@ -190,19 +190,18 @@ namespace BananaWatch
                             {
                                 page.PostModLoaded();
                             }
-                            catch (Exception e)
+                            catch (Exception err)
                             {
-                                Debug.LogError($"{page.GetType().FullName}: {e}");
+                                Debug.LogError($"page error: {page.GetType().FullName}: {err}");
                             }
                         }
-
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception err)
             {
-                Debug.LogError($"{e.Message}");
-                Debug.LogException(e);
+                Debug.LogError($"asset loading failed: {err.Message}");
+                Debug.LogException(err);
             }
         }
 
@@ -249,8 +248,8 @@ namespace BananaWatch
         {
             if (isInitialized)
             {
-                var watchAngle = Vector3.Angle(instantiatedBananaWatch.transform.up, GorillaTagger.Instance.offlineVRRig.transform.up -= new Vector3(0f, 180f, 0f));
-                if (watchAngle < Configuration.WatchClosingAngle.Value)
+                var watchAngle = Vector3.Angle(instantiatedBananaWatch.transform.up, GorillaTagger.Instance.offlineVRRig.transform.up);
+                if (watchAngle > Configuration.WatchClosingAngle.Value)
                 {
                     isWatchOpen = false;
                     instantiatedBananaWatch.transform.Find("Plane").gameObject.SetActive(false);
@@ -274,10 +273,10 @@ namespace BananaWatch
                         {
                             instantiatedBananaWatch.transform.SetParent(parentTransform);
                         }
-                            instantiatedBananaWatch.transform.localPosition = Vector3.Lerp(instantiatedBananaWatch.transform.localPosition, huntComputerTransform.localPosition + positionOffset, Time.deltaTime * 10f);
-                            instantiatedBananaWatch.transform.localRotation = Quaternion.Slerp(instantiatedBananaWatch.transform.localRotation, huntComputerTransform.localRotation * Quaternion.Euler(rotationOffset), Time.deltaTime * 10f);
+                        instantiatedBananaWatch.transform.localPosition = Vector3.Lerp(instantiatedBananaWatch.transform.localPosition, huntComputerTransform.localPosition + positionOffset, Time.deltaTime * 10f);
+                        instantiatedBananaWatch.transform.localRotation = Quaternion.Slerp(instantiatedBananaWatch.transform.localRotation, huntComputerTransform.localRotation * Quaternion.Euler(rotationOffset), Time.deltaTime * 10f);
 
-                            GameObject Screen = GameObject.Find("Player Objects/Local VRRig/Local Gorilla Player/RigAnchor/rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L/BananaWatch(Clone)/Plane");
+                        GameObject Screen = GameObject.Find("Player Objects/Local VRRig/Local Gorilla Player/RigAnchor/rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L/BananaWatch(Clone)/Plane");
                         GameObject head = GameObject.Find("Player Objects/Local VRRig/Local Gorilla Player/RigAnchor/rig/body/head");
                         Vector3 targetLookAt = head.transform.position;
                         Vector3 smoothLookAt = Vector3.Lerp(Screen.transform.position, targetLookAt, Time.deltaTime * 10f);
@@ -302,22 +301,33 @@ namespace BananaWatch
 
         public void PressButton(BananaWatchButton type)
         {
+            if (instantiatedBananaWatch == null)
+            {
+                return;
+            }
 
-            /*var watchAngle = Vector3.Angle(instantiatedBananaWatch.transform.up, GorillaTagger.Instance.offlineVRRig.transform.up);
-            if (watchAngle > Configuration.WatchClosingAngle.Value)
-                return;*/
+            GameObject plane = instantiatedBananaWatch.transform.Find("Plane")?.gameObject;
+            if (plane == null)
+            {
+                return;
+            }
 
             if (type == BananaWatchButton.Watch)
             {
                 isWatchOpen = !isWatchOpen;
-                GameObject Plane1 = GameObject.Find("Player Objects/Local VRRig/Local Gorilla Player/RigAnchor/rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L/BananaWatch(Clone)/Plane");
-                if (Plane1 != null)
-                    Plane1.SetActive(true);
+                plane.SetActive(true);
+                return;
+            }
+
+            if (currentPage == null)
+            {
+                Debug.LogError("404 Page Not Found");
                 return;
             }
             currentPage.ButtonPressed(type);
             UpdateScreen();
         }
+
 
         public void NavigateToPage(BananaWatchPage screen)
         {
