@@ -8,7 +8,7 @@
 ### Make sure to join the discord!
 ### https://discord.gg/kZmDh5etNy
 
-## For Developers
+## Integrations
 
 ### Below is a Template for making your very own integration to MonkeWatch!
 
@@ -77,3 +77,5 @@ namespace Template
     }
 }
 ```
+
+Make sure if your integration contains code that can give an advantage in any way it has a modded server check.
