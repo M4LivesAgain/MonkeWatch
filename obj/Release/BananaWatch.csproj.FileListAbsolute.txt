@@ -1,0 +1,2 @@
+C:\Users\m4la3\source\repos\MonkeComputer\Kolossal\obj\Release\BananaWatch.csproj.AssemblyReference.cache
+C:\Users\m4la3\source\repos\MonkeComputer\Kolossal\obj\Release\BananaWatch.csproj.CoreCompileInputs.cache
