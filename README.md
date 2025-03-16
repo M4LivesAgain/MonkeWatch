@@ -79,3 +79,4 @@ namespace Template
 ```
 
 Make sure if your integration contains code that can give an advantage in any way it has a modded server check.
+If you cannot get the code to work with selection or anything, read the source code of other integrations or ask for help in the discord.
