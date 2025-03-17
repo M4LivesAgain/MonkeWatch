@@ -133,7 +133,7 @@ Color (0, 255):
                 }
 
                 PlayerPrefs.Save();
-                BananaWatch.Instance.RefreshScreen();
+                BananaWatch.Instance.UpdateScreen();
             }
             else if (selectedOption == 1)
             {
@@ -202,7 +202,7 @@ Color (0, 255):
             }
 
             PlayerPrefs.Save();
-            BananaWatch.Instance.RefreshScreen();
+            BananaWatch.Instance.UpdateScreen();
         }
     }
 }

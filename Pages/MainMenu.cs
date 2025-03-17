@@ -2,7 +2,6 @@
 using BananaWatch.Pages;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -11,92 +10,76 @@ namespace BananaWatch.Pages
 {
     public class MainMenu : BananaWatchPage
     {
-        public override string MMHeader => "MainMenu";
-
-        public override bool MMDisplay => false;
-
         static SelectionHandler selectionHandler = new SelectionHandler();
-        public static Dictionary<int, List<BananaWatchPage>> ScreenPageDict = new Dictionary<int, List<BananaWatchPage>>();
-        public readonly BananaWatchButton[] secretCode = new BananaWatchButton[] { BananaWatchButton.Up, BananaWatchButton.Up, BananaWatchButton.Down, BananaWatchButton.Down, BananaWatchButton.Left, BananaWatchButton.Right, BananaWatchButton.Left, BananaWatchButton.Right, BananaWatchButton.Back, BananaWatchButton.Enter };
-        List<BananaWatchButton> lastPressedButtons = new List<BananaWatchButton>();
-        const int maxPageItemCount = 8;
+        public static Dictionary<int, List<BananaWatchPage>> PageDictionary = new Dictionary<int, List<BananaWatchPage>>();
+        const int MaximumPP = 12;
         private static int CurrentPage;
-        public static int _CurrentPage
+        public static int _currentPage
         {
-            get
-            {
-                return CurrentPage + 1;
-            }
-            set
-            {
-                CurrentPage = value;
-            }
+            get { return CurrentPage; }
+            set { CurrentPage = value; }
         }
-
-        public override void PageOpened()
-        {
-            lastPressedButtons.Clear();
-        }
+        public override string MMHeader => PluginInfo.MM;
+        public override bool MMDisplay => false;
         public override void PostModLoaded()
         {
-            ScreenPageDict.Clear(); 
+            PageDictionary.Clear();
+            int pageIndex = 0;
+            int IOffset = 0;
 
-            int pageIndex = 1; // start from 1, since CurrentPage also starts from 1
-            int indexOffset = 0;
-
-            for (int i = 0; i < BananaWatch.Instance.BananaWatchPages.Count; i++)
+            for (int i = 0; i < BananaWatch.Instance.watchPages.Count; i++)
             {
-                if (!BananaWatch.Instance.BananaWatchPages[i].MMDisplay)
+                if (!BananaWatch.Instance.watchPages[i].MMDisplay)
                 {
-                    indexOffset++;
+                    IOffset++;
                     continue;
                 }
 
-                if ((i - indexOffset) % maxPageItemCount == 0)
+                if ((i - IOffset) % MaximumPP == 0)
                 {
-                    if (!ScreenPageDict.ContainsKey(pageIndex))
-                        ScreenPageDict.Add(pageIndex, new List<BananaWatchPage>());
+                    if (!PageDictionary.ContainsKey(pageIndex))
+                        PageDictionary.Add(pageIndex, new List<BananaWatchPage>());
                     pageIndex++;
                 }
-
-                ScreenPageDict[pageIndex - 1].Add(BananaWatch.Instance.BananaWatchPages[i]);
+                PageDictionary[pageIndex - 1].Add(BananaWatch.Instance.watchPages[i]);
             }
 
-            if (!ScreenPageDict.ContainsKey(CurrentPage))
+            if (!PageDictionary.ContainsKey(_currentPage))
             {
-                CurrentPage = 1;
+                _currentPage = PageDictionary.Count > 0 ? 0 : -1;
             }
 
-            selectionHandler.MaxIndex = ScreenPageDict[CurrentPage].Count - 1;
-            selectionHandler.CurrentIndex = 0;
+            if (_currentPage >= 0)
+            {
+                selectionHandler.maxIndex = PageDictionary[_currentPage].Count - 1;
+                selectionHandler.currentIndex = 0;
+            }
         }
 
         public override string RenderScreenContent()
         {
-            Text _ScreenText = GameObject.Find("Player Objects/Local VRRig/Local Gorilla Player/RigAnchor/rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L/BananaWatch(Clone)/Plane/Canvas/Text")?.GetComponent<Text>();
-            if (_ScreenText != null)
+            Text screenText = GameObject.Find("Player Objects/Local VRRig/Local Gorilla Player/RigAnchor/rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L/BananaWatch(Clone)/Plane/Canvas/Text")?.GetComponent<Text>();
+            if (screenText != null)
             {
                 string header = "<color=#ffff00>========================</color>\r\n       <color=#00ff00>MonkeWatch</color>\r\n     by: <color=#ff0000>RedBrumbler</color>\r\n<color=#ffff00>========================</color>\r\n";
-
-                _ScreenText.text = header;
+                screenText.text = header;
 
                 string content = header;
 
-                if (!ScreenPageDict.ContainsKey(CurrentPage))
+                if (!PageDictionary.ContainsKey(_currentPage))
                 {
                     return "404 Not Found";
                 }
 
-                var screensPage = ScreenPageDict[CurrentPage];
-
+                var screensPage = PageDictionary[_currentPage];
                 for (int i = 0; i < screensPage.Count; i++)
                 {
                     content += selectionHandler.SelectionArrow(i, $"{screensPage[i].MMHeader}") + "\n";
                 }
 
-                if (ScreenPageDict.Count > 1)
+                if (PageDictionary.Count > 1)
                 {
-                    content += $"{CurrentPage}/{ScreenPageDict.Count}\n";
+                    content += $"{_currentPage}/{PageDictionary.Count - 1}\n";
                 }
 
                 return content;
@@ -109,51 +92,36 @@ namespace BananaWatch.Pages
 
         public override void ButtonPressed(BananaWatchButton ButtonType)
         {
-            switch(ButtonType)
+            switch (ButtonType)
             {
                 case BananaWatchButton.Up:
                     selectionHandler.MoveSelectionUp();
                     break;
+
                 case BananaWatchButton.Down:
                     selectionHandler.MoveSelectionDown();
                     break;
+
                 case BananaWatchButton.Left:
-                    if (ScreenPageDict.Count <= 1)
-                    {
-                        return;
-                    }
-
-                    int previousPage = CurrentPage - 1;
-
-                    if (!ScreenPageDict.ContainsKey(previousPage))
-                    {
-                        return;
-                    }
-
-                    CurrentPage = previousPage;
-                    selectionHandler.MaxIndex = ScreenPageDict[CurrentPage].Count - 1;
-                    selectionHandler.CurrentIndex = 0;
+                    if (PageDictionary.Count <= 1) return;
+                    _currentPage = (_currentPage - 1 + PageDictionary.Count) % PageDictionary.Count;
+                    selectionHandler.maxIndex = PageDictionary[_currentPage].Count - 1;
+                    selectionHandler.currentIndex = 0;
                     break;
+
                 case BananaWatchButton.Right:
-                    if (ScreenPageDict.Count <= 1)
-                    {
-                        return;
-                    }
-
-                    int nextPage = CurrentPage + 1;
-
-                    if (!ScreenPageDict.ContainsKey(nextPage))
-                    {
-                        return;
-                    }
-
-                    CurrentPage = nextPage;
-                    selectionHandler.MaxIndex = ScreenPageDict[CurrentPage].Count - 1;
-                    selectionHandler.CurrentIndex = 0;
+                    if (PageDictionary.Count <= 1) return;
+                    _currentPage = (_currentPage + 1) % PageDictionary.Count;
+                    selectionHandler.maxIndex = PageDictionary[_currentPage].Count - 1;
+                    selectionHandler.currentIndex = 0;
                     break;
+
                 case BananaWatchButton.Enter:
-                    var screen = ScreenPageDict[CurrentPage][selectionHandler.CurrentIndex];
-                    BananaWatch.Instance.NavigateToPage(screen.GetType());
+                    if (PageDictionary.ContainsKey(_currentPage) && selectionHandler.currentIndex < PageDictionary[_currentPage].Count)
+                    {
+                        var screen = PageDictionary[_currentPage][selectionHandler.currentIndex];
+                        BananaWatch.Instance.NavigateToPage(screen.GetType());
+                    }
                     break;
             }
         }

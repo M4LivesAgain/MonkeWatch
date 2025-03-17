@@ -2,39 +2,39 @@
 {
     public class SelectionHandler
     {
-        public int MaxIndex { get; set; } = 0;
-        public int CurrentIndex { get; set; }
+        public int maxIndex { get; set; } = 0;
+        public int currentIndex { get; set; }
         private string SelectionText => " <color=#FD0000>></color> ";
 
         public string GetSelectedText(int index, string text)
-            => CurrentIndex == index ? SelectionText + text : text;
+            => currentIndex == index ? SelectionText + text : text;
 
         public string SelectionArrow(int index, string text)
-            => CurrentIndex == index ? $" <color=#FD0000>></color> {text}" : $"  {text}";
+            => currentIndex == index ? $" <color=#FD0000>></color> {text}" : $"  {text}";
 
         public bool IsSelectionIndex(int index)
-            => CurrentIndex == index;
+            => currentIndex == index;
 
         public int CheckSelection()
         {
-            if (CurrentIndex < 0)
-                CurrentIndex = Configuration.WrapSelectArrow.Value ? MaxIndex : 0;
+            if (currentIndex < 0)
+                currentIndex = Configuration.WrapSelectArrow.Value ? maxIndex : 0;
 
-            if (CurrentIndex > MaxIndex)
-                CurrentIndex = Configuration.WrapSelectArrow.Value ? 0 : MaxIndex;
+            if (currentIndex > maxIndex)
+                currentIndex = Configuration.WrapSelectArrow.Value ? 0 : maxIndex;
 
-            return CurrentIndex;
+            return currentIndex;
         }
 
         public int MoveSelectionUp()
         {
-            CurrentIndex--;
+            currentIndex--;
             return CheckSelection();
         }
 
         public int MoveSelectionDown()
         {
-            CurrentIndex++;
+            currentIndex++;
             return CheckSelection();
         }
     }

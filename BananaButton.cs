@@ -21,7 +21,7 @@ namespace BananaWatch
     {
         private static readonly Color pressedColor = new Color(0.5f, 0.5f, 0.5f);
         private const float KEY_BUMP_AMOUNT = 0.02f;
-        public BananaWatchButton ButtonType;
+        public BananaWatchButton buttonType;
         public Renderer ButtonRenderer;
         public GameObject ButtonObject;
         public float ButtonTime;
@@ -34,37 +34,6 @@ namespace BananaWatch
         private Material _Material;
         private Color _OriginalColor;
         private Color _PressedButtonColor;
-
-        public void Awake()
-        {
-            if (ButtonRenderer == null)
-                ButtonRenderer = GetComponent<Renderer>();
-
-            if (ButtonRenderer == null)
-            {
-                return;
-            }
-
-            ButtonObject = this.gameObject;
-            if (ButtonObject == null)
-            {
-                return;
-            }
-
-            if (collider == null)
-                collider = GetComponent<BoxCollider>();
-
-            if (collider == null)
-            {
-                return;
-            }
-
-            _Material = ButtonRenderer.material; // setting this will cause null refenrencen error idk why
-            _OriginalColor = _Material.color;
-            _PressedButtonColor = pressedColor;
-
-            UpdateColor();
-        }
 
         void Update()
         {
@@ -102,7 +71,7 @@ namespace BananaWatch
 
             BumpOut();
             Active(false);
-            BananaWatch.Instance.CurrentPage.ButtonReleased(ButtonType);
+            BananaWatch.Instance._CurrentPage.ButtonReleased(buttonType);
         }
 
         void Active(bool val)
@@ -110,7 +79,7 @@ namespace BananaWatch
             isPressed = val;
             if (val)
             {
-                BananaWatch.Instance?.BananaWatchButtonPress(ButtonType);
+                BananaWatch.Instance?.PressButton(buttonType);
             }
             UpdateColor();
         }
@@ -149,17 +118,48 @@ namespace BananaWatch
 
         void UpdateColor()
         {
-            if (ButtonType == BananaWatchButton.Watch || ButtonRenderer == null)
+            if (buttonType == BananaWatchButton.Watch || ButtonRenderer == null)
                 return;
 
             _Material.color = isPressed
                 ? Configuration.PressedColor.Value
-                : ButtonType switch
+                : buttonType switch
                 {
                     BananaWatchButton.Enter => Configuration.EnterColor.Value,
                     BananaWatchButton.Back => Configuration.BackColor.Value,
                     _ => Configuration.ArrowColor.Value
                 };
+        }
+
+        public void Interface()
+        {
+            if (ButtonRenderer == null)
+                ButtonRenderer = GetComponent<Renderer>();
+
+            if (ButtonRenderer == null)
+            {
+                return;
+            }
+
+            ButtonObject = this.gameObject;
+            if (ButtonObject == null)
+            {
+                return;
+            }
+
+            if (collider == null)
+                collider = GetComponent<BoxCollider>();
+
+            if (collider == null)
+            {
+                return;
+            }
+
+            _Material = ButtonRenderer.material; // setting this will cause null refenrencen error
+            _OriginalColor = _Material.color;
+            _PressedButtonColor = pressedColor;
+
+            UpdateColor();
         }
     }
 }

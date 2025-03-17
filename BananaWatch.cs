@@ -4,88 +4,93 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using TMPro;
+using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.UIElements;
 using BananaWatch.Pages;
+using UnityEngine.InputSystem;
+using GorillaNetworking;
+using Photon.Pun;
 
 namespace BananaWatch
 {
     [BepInPlugin("com.M4LivesAgain.BananaWatch", "BananaWatch", PluginInfo.Version)]
     public class BananaWatch : BaseUnityPlugin
     {
+        private static List<Type> pageTypes = new List<Type>();
         public static BananaWatch Instance;
         private static AssetBundle assetBundle;
-        private static GameObject BananaWatchPrefab;
+        private static GameObject bananaWatchPrefab;
         private GameObject InstantiatedBananaWatch;
-        private Vector3 _PositionOffset = new Vector3(0.639f, -0.64f, -0.017f); // as perfect as i can get it without src
-        private Vector3 _RotationOffset = new Vector3(90f, 180f, -90f);
-
-        private static List<Type> TypeOfPage = new List<Type>();
-        public List<BananaWatchPage> BananaWatchPages = new List<BananaWatchPage>();
-        public BananaWatchPage CurrentPage;
-
-        private Text _ScreenText = GameObject.Find("Player Objects/Local VRRig/Local Gorilla Player/RigAnchor/rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L/BananaWatch(Clone)/Plane/Canvas/Text")?.GetComponent<Text>();
-        private static Vector3 OriginalScale;
+        private Text screenText = GameObject.Find("Player Objects/Local VRRig/Local Gorilla Player/RigAnchor/rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L/BananaWatch(Clone)/Plane/Canvas/Text")?.GetComponent<Text>();
+        private static Vector3 originalScale;
         private bool isWatchOpen;
-        public bool BananaWatchInitialized = false;
 
+        private Vector3 positionOffset = new Vector3(0.639f, -0.64f, -0.017f); // as perfect as i can get it without src
+        private Vector3 rotationOffset = new Vector3(90f, 180f, -90f);
 
+        public List<BananaWatchPage> watchPages = new List<BananaWatchPage>();
+        public BananaWatchPage _CurrentPage;
 
-        public bool KolossalWasNeverACheatForGorillaTag = true;
+        public bool isInitialized = false;
+
+        private bool KolossalIsNotACheatForGorillaTag = true;
+        private bool HuskyGTDontOpenSourceYourCodeIfYouAreGoingToComplainWhenItIsUsed = true;
+
+        void OnLoaded()
+        {
+            Instance = this;
+            GameObject Plane = InstantiatedBananaWatch.transform.Find("Plane")?.gameObject;
+            Plane.SetActive(false);
+            Configuration.LoadSettings();
+
+            pageTypes.Add(typeof(StartPage));
+            pageTypes.Add(typeof(ErrorPage));
+            pageTypes.Add(typeof(MainMenu));
+            pageTypes.Add(typeof(ScoreboardPage));
+            pageTypes.Add(typeof(DetailsPage));
+            pageTypes.Add(typeof(PlayerDetailsPage));
+            pageTypes.Add(typeof(Disconnect));
+            pageTypes.Add(typeof(ReportPlayerPage));
+            foreach (var page in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                try
+                {
+                    var types = page.GetTypes().Where(type => type.IsSubclassOf(typeof(BananaWatchPage)));
+                    foreach (var type in types)
+                    {
+                        if (!pageTypes.Contains(type))
+                        {
+                            pageTypes.Add(type);
+                        }
+                    }
+                }
+                catch (Exception err)
+                {
+                    Debug.LogError($"{page.FullName} errored while registering: " + err);
+                }
+            }
+
+            CreatePages();
+
+            NavigateToPage(typeof(StartPage));
+        }
 
         void Start()
         {
             StartCoroutine(InitializeBananaWatch());
         }
 
-        void OnLoaded()
+        void CreatePages()
         {
-            TypeOfPage.Add(typeof(StartPage));
-            TypeOfPage.Add(typeof(ErrorPage));
-            TypeOfPage.Add(typeof(MainMenu));
-            TypeOfPage.Add(typeof(ScoreboardPage));
-            TypeOfPage.Add(typeof(DetailsPage));
-            TypeOfPage.Add(typeof(PlayerDetailsPage));
-            TypeOfPage.Add(typeof(Disconnect));
-            TypeOfPage.Add(typeof(ReportPlayerPage));
-
-            Instance = this;
-            Configuration.LoadSettings();
-
-            GameObject Plane = InstantiatedBananaWatch.transform.Find("Plane")?.gameObject;
-            Plane.SetActive(false);
-
-            foreach (var ASSEMBLY in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                try
-                {
-                    var pageTypes = ASSEMBLY.GetTypes().Where(type => typeof(BananaWatchPage).IsAssignableFrom(type));
-                    foreach (var pageType in pageTypes)
-                    {
-                        if (!TypeOfPage.Contains(pageType))
-                        {
-                            TypeOfPage.Add(pageType);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"assembly failed to load: {ASSEMBLY.FullName}: {ex.Message}");
-                }
-            }
-
-            InitializePages();
-            NavigateToPage(typeof(StartPage));
-        }
-
-        void InitializePages()
-        {
-            foreach (var type in TypeOfPage)
+            foreach (var type in pageTypes)
             {
                 try
                 {
                     var watchPage = (BananaWatchPage)gameObject.AddComponent(type);
-                    BananaWatchPages.Add(watchPage);
+                    watchPages.Add(watchPage);
                 }
                 catch (Exception err)
                 {
@@ -108,13 +113,13 @@ namespace BananaWatch
 
                 if (assetBundle != null)
                 {
-                    BananaWatchPrefab = assetBundle.LoadAsset<GameObject>("BananaWatch");
+                    bananaWatchPrefab = assetBundle.LoadAsset<GameObject>("BananaWatch");
 
-                    if (BananaWatchPrefab != null)
+                    if (bananaWatchPrefab != null)
                     {
-                        InstantiatedBananaWatch = Instantiate(BananaWatchPrefab);
+                        InstantiatedBananaWatch = Instantiate(bananaWatchPrefab);
 
-                        OriginalScale = InstantiatedBananaWatch.transform.localScale;
+                        originalScale = InstantiatedBananaWatch.transform.localScale;
 
                         InstantiatedBananaWatch.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
                         InstantiatedBananaWatch.transform.localRotation = Quaternion.Euler(180, 0, 0);
@@ -146,45 +151,45 @@ namespace BananaWatch
                                 switch (child.name)
                                 {
                                     case "Up":
-                                        watchButton.ButtonType = BananaWatchButton.Up;
+                                        watchButton.buttonType = BananaWatchButton.Up;
                                         break;
                                     case "Down":
-                                        watchButton.ButtonType = BananaWatchButton.Down;
+                                        watchButton.buttonType = BananaWatchButton.Down;
                                         break;
                                     case "Left":
-                                        watchButton.ButtonType = BananaWatchButton.Left;
+                                        watchButton.buttonType = BananaWatchButton.Left;
                                         break;
                                     case "Right":
-                                        watchButton.ButtonType = BananaWatchButton.Right;
+                                        watchButton.buttonType = BananaWatchButton.Right;
                                         break;
                                     case "Back":
-                                        watchButton.ButtonType = BananaWatchButton.Back;
+                                        watchButton.buttonType = BananaWatchButton.Back;
                                         break;
                                     case "Enter":
-                                        watchButton.ButtonType = BananaWatchButton.Enter;
+                                        watchButton.buttonType = BananaWatchButton.Enter;
                                         break;
                                     default:
                                         Debug.LogWarning($"button was registered that i dont understand: {child.name}");
                                         break;
                                 }
 
-                                watchButton.Awake();
+                                watchButton.Interface();
                             }
                         }
 
-                        BananaWatchInitialized = true;
+                        isInitialized = true;
                         OnLoaded();
 
 
-                        foreach (var BananaWatchPage in BananaWatchPages)
+                        foreach (var page in watchPages)
                         {
                             try
                             {
-                                BananaWatchPage.PostModLoaded();
+                                page.PostModLoaded();
                             }
                             catch (Exception err)
                             {
-                                Debug.LogError($"page error: {BananaWatchPage.GetType().FullName}: {err}");
+                                Debug.LogError($"page error: {page.GetType().FullName}: {err}");
                             }
                         }
                     }
@@ -201,7 +206,7 @@ namespace BananaWatch
         {
             if (InstantiatedBananaWatch != null)
             {
-                _ScreenText = InstantiatedBananaWatch.transform.Find("Plane/Canvas/Text")?.GetComponent<Text>();
+                screenText = InstantiatedBananaWatch.transform.Find("Plane/Canvas/Text")?.GetComponent<Text>();
             }
         }
 
@@ -221,9 +226,24 @@ namespace BananaWatch
                 Plane.SetActive(false);
         }
 
+        public void UpdateScreen()
+        {
+            try
+            {
+                screenText.text = _CurrentPage.RenderScreenContent();
+            }
+            catch (Exception exception)
+            {
+                var e = $"{exception}";
+                Debug.LogError(e);
+                ErrorPage.page = e;
+                NavigateToPage(typeof(ErrorPage));
+            }
+        }
+
         void Update()
         {
-            if (BananaWatchInitialized)
+            if (isInitialized)
             {
                 var watchAngle = Vector3.Angle(InstantiatedBananaWatch.transform.up, GorillaTagger.Instance.offlineVRRig.transform.up);
                 if (watchAngle > Configuration.WatchClosingAngle.Value)
@@ -237,7 +257,7 @@ namespace BananaWatch
 
         public void LateUpdate()
         {
-            if (BananaWatchInitialized && InstantiatedBananaWatch != null)
+            if (isInitialized && InstantiatedBananaWatch != null)
             {
                 try
                 {
@@ -250,8 +270,8 @@ namespace BananaWatch
                         {
                             InstantiatedBananaWatch.transform.SetParent(parentTransform);
                         }
-                        InstantiatedBananaWatch.transform.localPosition = Vector3.Lerp(InstantiatedBananaWatch.transform.localPosition, huntComputerTransform.localPosition + _PositionOffset, Time.deltaTime * 10f);
-                        InstantiatedBananaWatch.transform.localRotation = Quaternion.Slerp(InstantiatedBananaWatch.transform.localRotation, huntComputerTransform.localRotation * Quaternion.Euler(_RotationOffset), Time.deltaTime * 10f);
+                        InstantiatedBananaWatch.transform.localPosition = Vector3.Lerp(InstantiatedBananaWatch.transform.localPosition, huntComputerTransform.localPosition + positionOffset, Time.deltaTime * 10f);
+                        InstantiatedBananaWatch.transform.localRotation = Quaternion.Slerp(InstantiatedBananaWatch.transform.localRotation, huntComputerTransform.localRotation * Quaternion.Euler(rotationOffset), Time.deltaTime * 10f);
 
                         GameObject Screen = GameObject.Find("Player Objects/Local VRRig/Local Gorilla Player/RigAnchor/rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L/BananaWatch(Clone)/Plane");
                         GameObject head = GameObject.Find("Player Objects/Local VRRig/Local Gorilla Player/RigAnchor/rig/body/head");
@@ -268,7 +288,7 @@ namespace BananaWatch
             }
             else
             {
-                if (!BananaWatchInitialized)
+                if (!isInitialized)
                 {
                     return;
                 }
@@ -276,7 +296,7 @@ namespace BananaWatch
         }
 
 
-        public void BananaWatchButtonPress(BananaWatchButton type)
+        public void PressButton(BananaWatchButton type)
         {
             if (InstantiatedBananaWatch == null)
             {
@@ -296,60 +316,44 @@ namespace BananaWatch
                 return;
             }
 
-            if (CurrentPage == null)
+            if (_CurrentPage == null)
             {
                 Debug.LogError("404 Page Not Found");
                 return;
             }
-            CurrentPage.ButtonPressed(type);
-            RefreshScreen();
+            _CurrentPage.ButtonPressed(type);
+            UpdateScreen();
         }
 
 
         public void NavigateToPage(BananaWatchPage screen)
         {
-            if (screen == null) return;
+            if (screen == null)
+            {
+                return;
+            }
 
-            BananaWatch.Instance.CurrentPage = screen;
+            BananaWatch.Instance._CurrentPage = screen;
             screen.PageOpened();
-            BananaWatch.Instance.RefreshScreen();
+            BananaWatch.Instance.UpdateScreen();
         }
 
         public void NavigateToPage(Type screenType)
         {
-            if (BananaWatchPages?.Count > 0)
+            if (watchPages == null)
             {
-                var screen = BananaWatchPages.FirstOrDefault(page => page.GetType() == screenType);
-                if (screen != null)
-                {
-                    NavigateToPage(screen);
-                }
-                else
-                {
-                    Debug.LogError("no");
-                }
+                return;
+            }
+
+            BananaWatchPage screen = watchPages.FirstOrDefault(page => page.GetType() == screenType);
+
+            if (screen != null)
+            {
+                NavigateToPage(screen);
             }
             else
             {
-                Debug.LogError("also no lol");
-            }
-        }
-        public void RefreshScreen()
-        {
-            try
-            {
-                var content = CurrentPage.RenderScreenContent();
-                if (_ScreenText != null)
-                {
-                    _ScreenText.text = content;
-                }
-            }
-            catch (Exception ex)
-            {
-                string errorMessage = $"exception: {ex}";
-                Debug.LogError(errorMessage);
-                ErrorPage.page = errorMessage;
-                NavigateToPage(typeof(ErrorPage));
+                Debug.LogError($"{screenType}");
             }
         }
     }

@@ -17,7 +17,7 @@ namespace BananaWatch.Pages
 
         public override void PageOpened()
         {
-            selectionHandler.CurrentIndex = 0;
+            selectionHandler.currentIndex = 0;
             UpdatePlayerList();
             InvokeRepeating("ForceUpdate", 0, 0.5f);
         }
@@ -29,7 +29,7 @@ namespace BananaWatch.Pages
             {
                 players.AddRange(PhotonNetwork.PlayerList);
             }
-            selectionHandler.MaxIndex = players.Count - 1;
+            selectionHandler.maxIndex = players.Count - 1;
         }
 
         public override string RenderScreenContent()
@@ -80,7 +80,7 @@ namespace BananaWatch.Pages
 
         public string SelectionArrow(int index, string text)
         {
-            return selectionHandler.CurrentIndex == index ? $" <color=#C16F66>></color> {text}" : $"   {text}";
+            return selectionHandler.currentIndex == index ? $" <color=#C16F66>></color> {text}" : $"   {text}";
         }
 
         public override void ButtonPressed(BananaWatchButton ButtonType)
@@ -106,14 +106,14 @@ namespace BananaWatch.Pages
         {
             if (players.Count == 0) return;
 
-            Photon.Realtime.Player selectedPlayer = players[selectionHandler.CurrentIndex];
+            Photon.Realtime.Player selectedPlayer = players[selectionHandler.currentIndex];
             PlayerDetailsPage.SelectedPlayer = selectedPlayer;
             BananaWatch.Instance.NavigateToPage(typeof(PlayerDetailsPage));
         }
 
         private void ForceUpdate()
         {
-            BananaWatch.Instance.RefreshScreen();
+            BananaWatch.Instance.UpdateScreen();
         }
     }
 }

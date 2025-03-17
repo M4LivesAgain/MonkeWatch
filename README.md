@@ -39,8 +39,8 @@ namespace Template
 
         public override void PageOpened()
         {
-            selectionHandler.MaxIndex = _MenuOptions.Count - 1;
-            selectionHandler.CurrentIndex = 0;
+            selectionHandler.maxIndex = _MenuOptions.Count - 1;
+            selectionHandler.currentIndex = 0;
         }
 
         public override string RenderScreenContent()
