@@ -36,8 +36,8 @@ namespace BananaWatch
 
         public bool isInitialized = false;
 
-        private bool KolossalIsNotACheatForGorillaTag = true;
-        private bool HuskyGTDontOpenSourceYourCodeIfYouAreGoingToComplainWhenItIsUsed = true;
+        private bool KolossalIsNotACheatForGorillaTag = false;
+        private bool HuskyGTDontOpenSourceYourCodeIfYouAreGoingToComplainWhenItIsUsed = false;
 
         void OnLoaded()
         {
