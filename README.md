@@ -1,6 +1,7 @@
 # MonkeWatch
 ### MonkeWatch is a port of popular old quest mod named MonkeComputer, Created by M4.
 
+### I did use some code from HuskyGT's recreation at the start of creating MonkeWatch but my code depends on most of it, I am trying my hardest to get rid of any references of his code due to people saying I stole it but it is very hard.
 
 ### Simply input the .dll into your BepInEx plugin folder and then it should work. Integrations should be put in the same plugins folder.
 
